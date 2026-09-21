@@ -1,17 +1,18 @@
 import bpy
 
+from .protocol import is_xr_running
+from .tracking import (
+    start_recording,
+    stop_recording,
+    start_preview,
+    stop_preview,
+)
 from .utils import (
     check_refs,
     create_bone_references,
     create_empty_references,
     get_context,
     get_state,
-)
-from .xr_core.tracking import (
-    start_recording,
-    stop_recording,
-    start_preview,
-    stop_preview,
 )
 
 
@@ -23,14 +24,21 @@ class ToggleRecordOperator(bpy.types.Operator):
         xr_state = get_state()
 
         # Double check state, though this should have been checked before
-        if not xr_state.enabled:
+        if not is_xr_running():
             return {"FINISHED"}
 
         if xr_state.recording:
             stop_recording()
         else:
+            if len(get_context().trackers) == 0:
+                self.report({"ERROR"}, "No trackers exist to record.")
+                return {"CANCELLED"}
+
             if not check_refs():
-                self.report({"WARNING"}, "Not all references exist. Expect data loss.")
+                if get_context().use_bones:
+                    create_bone_references()
+                else:
+                    create_empty_references()
 
             start_recording()
 
@@ -42,7 +50,7 @@ class ToggleActiveOperator(bpy.types.Operator):
     bl_label = "Toggle OpenXR's tracking state"
 
     def execute(self, context):
-        if get_state().enabled:
+        if is_xr_running():
             stop_preview()
         else:
             start_preview()
@@ -57,21 +65,10 @@ class CreateRefsOperator(bpy.types.Operator):
 
     @staticmethod
     def execute(self, context):
-        xr_state = get_state()
-
-        # Temporarily disable XR.
-        should_reenable = xr_state.enabled
-        if xr_state.enabled:
-            stop_preview()
-
         # Create references.
         if get_context().use_bones:
             create_bone_references()
         else:
             create_empty_references()
 
-        if should_reenable:
-            start_preview()
-
-        print("Done")
         return {"FINISHED"}
