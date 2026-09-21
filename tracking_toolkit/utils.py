@@ -400,6 +400,9 @@ def convert_bones_to_empties():
                 empty_action, empty_action.slots[0]
             ).fcurves
             for fcurve in fcurves:
+                if not fcurve.data_path:
+                    continue
+
                 # Remove copied fcurves that belong to other bones.
                 if not fcurve.data_path.startswith(f'pose.bones["{nickname}"]'):
                     fcurves.remove(fcurve)
@@ -553,6 +556,8 @@ def convert_empties_to_bones():
 
             for empty_fcurve in empty_fcurves:
                 orig_path = empty_fcurve.data_path
+                if not orig_path:
+                    continue
 
                 # Custom property path.
                 if orig_path.startswith('["'):
