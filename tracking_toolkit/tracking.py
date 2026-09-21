@@ -34,16 +34,17 @@ def _update_tracker_list(poses: dict[str, PoseData]):
             if role_string in current_tracker_roles:
                 continue
 
-            # Only add if the tracker has moved from its initial position.
-            loc = poses[role_string].pose.to_translation()
+            loc = poses[role_string].pose.to_translation().copy()
+            if loc.length == 0:
+                continue
+
+            # XR Tracker location is relative to head.
+            if role_string != "head" and poses.get("head"):
+                head_loc = poses["head"].pose.to_translation().copy()
+                loc -= head_loc
 
             if role_string not in initial_poses:
-                # Sometimes disconnected trackers start at 0 then jump to some fixed position.
-                # Don't treat that jump as movement.
-                if loc.length == 0:
-                    continue
-
-                initial_poses[role_string] = loc.copy()
+                initial_poses[role_string] = loc
                 continue
 
             distance = (loc - initial_poses[role_string]).length
