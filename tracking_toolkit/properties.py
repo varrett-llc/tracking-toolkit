@@ -6,6 +6,7 @@ from .utils import (
     convert_empties_to_bones,
     get_context,
     reformat_role_string,
+    popup_message,
 )
 
 
@@ -31,9 +32,10 @@ def tracker_nickname_change(self, _):
             # Revert to previous nickname (or default).
             self["nickname"] = self.prev_nickname or default_name
 
-            raise ValueError(
+            popup_message(
                 "You cannot use the real name of different tracker as a nickname."
             )
+            return
 
     def _prevent_conflict(items):
         """
@@ -44,9 +46,10 @@ def tracker_nickname_change(self, _):
             # Revert to previous nickname (or role string).
             self["nickname"] = self.prev_nickname or self.role_string
 
-            raise ValueError(
-                f"Cannot rename {role_string} to an existing nickname or object: {new_nickname}."
+            popup_message(
+                f"Cannot rename '{role_string}' to an existing nickname or object: '{new_nickname}'."
             )
+            return
 
     if get_context().use_bones:
         armature = bpy.data.objects.get("XR Trackers")

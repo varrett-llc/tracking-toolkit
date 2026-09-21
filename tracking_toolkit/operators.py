@@ -30,8 +30,15 @@ class ToggleRecordOperator(bpy.types.Operator):
         if xr_state.recording:
             stop_recording()
         else:
+            if len(get_context().trackers) == 0:
+                self.report({"ERROR"}, "No trackers exist to record.")
+                return {"CANCELLED"}
+
             if not check_refs():
-                self.report({"WARNING"}, "Not all references exist. Expect data loss.")
+                if get_context().use_bones:
+                    create_bone_references()
+                else:
+                    create_empty_references()
 
             start_recording()
 
@@ -64,5 +71,4 @@ class CreateRefsOperator(bpy.types.Operator):
         else:
             create_empty_references()
 
-        print("Done")
         return {"FINISHED"}

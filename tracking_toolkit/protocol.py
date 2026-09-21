@@ -12,6 +12,8 @@ from bpy.types import (
     XrActionMap,
 )
 
+from .utils import popup_message, log
+
 ACTION_SET_NAME = "tracking_toolkit"
 
 
@@ -245,7 +247,7 @@ def _add_bindings_for_profile(
         bindings.threshold = 0.3
 
     if not session_state.action_binding_create(context, action_map, item, bindings):
-        print(f"Failed to add {vendor} {item.name} binding.")
+        log(f"Failed to add {vendor} {item.name} binding.")
         return False
 
     return True
@@ -256,24 +258,28 @@ def _init_xr(*_):
     session_state = bpy.context.window_manager.xr_session_state
 
     runtime_path = _get_runtime_path()
-    print(f"OpenXR runtime path: {runtime_path}")
+    log(f"OpenXR runtime path: {runtime_path}")
 
     use_trackers = (
         "steamvr" in runtime_path.lower() or "steamxr" in runtime_path.lower()
     )
     if use_trackers:
-        print("Enabling Vive trackers.")
+        log("Enabling Vive trackers.")
 
     action_map = session_state.actionmaps.new(session_state, ACTION_SET_NAME, True)
     if not session_state.action_set_create(context, action_map):
-        print("Failed to create action set.")
+        log(
+            "Failed to create action set. If you're restarting the XR session, you should be okay."
+        )
         return
 
     # Create action map items.
 
     pose_item = action_map.actionmap_items.new("pose", True)
     if not pose_item:
-        print(f"Failed to create controller pose action item.")
+        log(
+            f"Failed to create pose action item. If you're restarting the XR session, you should be okay."
+        )
         return
     pose_item.type = "POSE"
     pose_item.pose_is_controller_grip = True
@@ -293,12 +299,14 @@ def _init_xr(*_):
     for action_data_item in working_action_data:
         item = action_map.actionmap_items.get(action_data_item.type)
         if item is None:
-            print(f"Failed to find action item for {action_data_item.type}")
+            log(f"Failed to find action item for {action_data_item.type}, skipping.")
             continue
         item.user_paths.new(action_data_item.action_path)
 
     if not session_state.action_create(context, action_map, pose_item):
-        print(f"Failed to create pose action.")
+        log(
+            f"Failed to create pose action. If you're restarting the XR session, you should be okay."
+        )
         return
 
     session_state.action_create(context, action_map, trigger_item)
@@ -352,14 +360,14 @@ def _init_xr(*_):
     )
     session_state.active_action_set_set(context, action_map.name)
 
-    print("OpenXR initialized.")
+    log("OpenXR initialized.")
 
 
 def start_xr():
     context = bpy.context
     session_state = bpy.context.window_manager.xr_session_state
 
-    print("Starting XR Tracking")
+    log("Starting XR Tracking.")
 
     if _init_xr not in bpy.app.handlers.xr_session_start_pre:
         bpy.app.handlers.xr_session_start_pre.append(_init_xr)
@@ -369,7 +377,7 @@ def start_xr():
 
     bpy.ops.wm.xr_session_toggle()
 
-    print("Waiting to start...")
+    log("Waiting to start...")
 
 
 def is_xr_running() -> bool:
@@ -465,7 +473,7 @@ def stop_xr():
 
     bpy.ops.wm.xr_session_toggle()
 
-    print("XR Tracking Stopped")
+    log("XR Tracking Stopped.")
 
 
 def get_default_tracker_names():

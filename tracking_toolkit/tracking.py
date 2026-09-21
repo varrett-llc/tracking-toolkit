@@ -7,7 +7,7 @@ from bpy_extras import anim_utils
 
 from .preferences import get_preferences, PreferenceInputMapping
 from .protocol import start_xr, tick_xr, stop_xr, is_xr_running, PoseData
-from .utils import get_context, get_state
+from .utils import get_context, get_state, log, popup_message
 
 # Shared variables
 data_buffer = []
@@ -57,7 +57,7 @@ def _update_tracker_list(poses: dict[str, PoseData]):
                 if n.role_string == role_string:
                     nickname = str(n.nickname)
 
-            print(f"Adding new tracker: {nickname} ({role_string})")
+            log(f"Adding new tracker: {nickname} ({role_string})")
 
             # Set up tracker property data.
             tracker = xr_context.trackers.add()
@@ -290,12 +290,12 @@ def _insert_keyframe(pose_data: dict[str, PoseData]):
         if xr_context.use_bones:
             arm = bpy.data.objects.get("XR Trackers")
             if not arm:
-                print("Could not find armature. Data was not applied.")
+                popup_message("Could not find armature. Data was not applied.")
                 return
 
             bone = arm.pose.bones.get(nickname)
             if not bone:
-                print(f"Could not find bone for {nickname}. Skipping.")
+                log(f"Could not find bone for {nickname}. Skipping.")
                 continue
 
             obj = bone
@@ -303,7 +303,7 @@ def _insert_keyframe(pose_data: dict[str, PoseData]):
         else:
             obj = bpy.data.objects.get(nickname)
             if not obj:
-                print(f"No references found for {nickname}. Skipping.")
+                log(f"No references found for {nickname}. Skipping.")
                 continue
 
         def _insert_key(path: str, value):
@@ -325,7 +325,7 @@ def _insert_action(relative_time: bool = False):
 
     num_samples = len(pose_data)
     if num_samples == 0:
-        print(f"OpenXR Found no samples to process")
+        popup_message(f"Recorded data has no samples to process.")
         return
 
     # Calculate recording FPS based on scene FPS and framerate type.
@@ -346,10 +346,10 @@ def _insert_action(relative_time: bool = False):
 
     # The samples might not be at the correct interval. Here, we go through each frame and linearly interpolate.
 
-    print(f"OpenXR Converting samples at {record_fps}fps...")
-    print(f"Frames: {total_frames}")
-    print(f"Samples: {len(pose_data)}")
-    print(f"Duration: {total_duration}")
+    log(f"OpenXR Converting samples at {record_fps}fps...")
+    log(f"Frames: {total_frames}")
+    log(f"Samples: {len(pose_data)}")
+    log(f"Duration: {total_duration}")
 
     animation_data = {}
     current_time = 0
@@ -456,7 +456,7 @@ def _insert_action(relative_time: bool = False):
         )  # Compensate for difference in scene and record fps
 
     # Now insert or replace the data
-    print("OpenXR Inserting data...")
+    log("OpenXR Inserting data...")
 
     # Format SMPTE timecode.
     # Also calculate the frame based on the current microsecond/scene time.
@@ -472,12 +472,12 @@ def _insert_action(relative_time: bool = False):
 
     time_string += f":{frame_offset_str}"
 
-    print(f"Using SMPTE timecode: {time_string}")
+    log(f"Using SMPTE timecode: {time_string}")
 
     action = None
 
     for tracker_name, data in animation_data.items():
-        print(">", tracker_name)
+        log(f">\t{tracker_name}")
 
         tracker = data["tracker"]
         nickname = tracker.naming.nickname
@@ -490,7 +490,7 @@ def _insert_action(relative_time: bool = False):
             if not action:  # We are in a loop, so ensure it's only created once.
                 arm = bpy.data.objects.get("XR Trackers")
                 if not arm:
-                    print("Could not find armature. Data was not applied.")
+                    popup_message("Could not find armature. Data was not applied.")
                     continue
 
                 action = _create_action(arm, time_string)
@@ -500,7 +500,7 @@ def _insert_action(relative_time: bool = False):
         else:
             empty = bpy.data.objects.get(nickname)
             if not empty:
-                print(f"No references found for {nickname}. Skipping.")
+                log(f"No references found for {nickname}. Skipping.")
                 continue
 
             action = _create_action(empty, f"{nickname}_{time_string}")
@@ -579,14 +579,14 @@ def _insert_action(relative_time: bool = False):
                 # Update the fcurve to apply changes.
                 fcurve.update()
 
-    print("Done")
+    log("Actions inserted.")
 
 
 def _xr_countdown_timer():
     xr_state = get_state()
 
     if not xr_state.recording:
-        print("OpenXR Countdown Canceled")
+        log("Recording countdown canceled")
         return None
 
     xr_state.countdown -= 1
@@ -598,11 +598,11 @@ def _xr_countdown_timer():
     # Clear buffer, so the recorded data starts now.
     # Use < 1 in case it somehow goes negative.
     if xr_state.countdown < 1:
-        print("OpenXR Recording Started")
+        log("Recording started.")
         _clear_buffer()
         return None
 
-    print(f"OpenXR recording starting in {xr_state.countdown}s")
+    log(f"Recording starting in {xr_state.countdown}s...")
     return 1
 
 
@@ -625,7 +625,7 @@ def start_recording():
         bpy.app.timers.register(_xr_countdown_timer)
 
     xr_state.recording = True
-    print("OpenXR Countdown Started")
+    log("Countdown started.")
 
 
 def stop_recording():
@@ -639,7 +639,7 @@ def stop_recording():
     _insert_action()
     _clear_buffer()
 
-    print("OpenXR Recording Stopped")
+    log("Recording stopped.")
 
 
 def start_preview():
@@ -652,7 +652,7 @@ def start_preview():
     if not bpy.app.timers.is_registered(_pose_vis_timer):
         bpy.app.timers.register(_pose_vis_timer)
 
-    print("OpenXR Preview Started")
+    log("Realtime preview started.")
 
 
 def stop_preview():
@@ -671,4 +671,4 @@ def stop_preview():
     xr_state = get_state()
     xr_state.recording = False
 
-    print("OpenXR Preview Stopped")
+    print("Realtime preview stopped.")

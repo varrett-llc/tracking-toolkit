@@ -3,7 +3,7 @@ import math
 import bpy
 
 from .protocol import default_tracker_names
-from .utils import reformat_role_string
+from .utils import reformat_role_string, popup_message
 from .. import __package__ as base_package
 
 
@@ -66,9 +66,11 @@ def preference_nickname_change(self, _):
     if new_nickname in existing_names:
         # Revert to previous.
         self["nickname"] = self.prev_nickname
-        raise ValueError(
-            f"Cannot rename {role_string} to an existing nickname or object: {new_nickname}."
+
+        popup_message(
+            f"Cannot rename '{role_string}' to an existing nickname or object: '{new_nickname}'."
         )
+        return
 
     # Nickname cannot be set to a default, unless it's the tracker's own.
     if new_nickname in [reformat_role_string(rs) for rs in default_tracker_names]:
@@ -76,9 +78,11 @@ def preference_nickname_change(self, _):
         if new_nickname != default_name:
             # Revert to previous nickname (or default).
             self["nickname"] = self.prev_nickname or default_name
-            raise ValueError(
-                "You cannot use the real name of different tracker as a nickname."
+
+            popup_message(
+                "You cannot use the real name of different tracker as a nickname.",
             )
+            return
 
     print(f"Set preferences nickname of {role_string} to {new_nickname}")
     self.prev_nickname = new_nickname
