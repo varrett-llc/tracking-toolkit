@@ -183,6 +183,18 @@ def _get_runtime_path() -> str:
     return ""
 
 
+def are_trackers_disabled() -> bool:
+    """
+    Check if SteamVR is active, but the Blender version is insufficient (<5.3).
+    """
+    runtime_path = _get_runtime_path()
+
+    use_steamvr = "steamvr" in runtime_path.lower() or "steamxr" in runtime_path.lower()
+    trackers_supported = bpy.app.version >= (5, 3, 0)
+
+    return use_steamvr and not trackers_supported
+
+
 def _create_bindings(
     name: str,
     item: XrActionMapItem,
@@ -260,11 +272,14 @@ def _init_xr(*_):
     runtime_path = _get_runtime_path()
     log(f"OpenXR runtime path: {runtime_path}")
 
-    use_trackers = (
-        "steamvr" in runtime_path.lower() or "steamxr" in runtime_path.lower()
-    )
-    if use_trackers:
-        log("Enabling Vive trackers.")
+    use_steamvr = "steamvr" in runtime_path.lower() or "steamxr" in runtime_path.lower()
+
+    use_trackers = False
+    if use_steamvr:
+        if are_trackers_disabled():
+            log("Blender version insufficient for Vive trackers. Disabling.")
+        else:
+            use_trackers = True
 
     action_map = session_state.actionmaps.new(session_state, ACTION_SET_NAME, True)
     if not session_state.action_set_create(context, action_map):

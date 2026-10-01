@@ -13,7 +13,7 @@ If you'd like to see support for a new device, let me know! You can open an issu
 
 ## Requirements
 
-Tracking Toolkit works with Blender 5.3 or later.
+Tracking Toolkit works with Blender 5.2 or later. Vive tracker support requires at least Blender 5.3.
 
 Additionally, you will need an OpenXR runtime and a device to go with it.
 

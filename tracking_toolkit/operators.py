@@ -1,6 +1,6 @@
 import bpy
 
-from .protocol import is_xr_running
+from .protocol import is_xr_running, are_trackers_disabled
 from .tracking import (
     start_recording,
     stop_recording,
@@ -53,6 +53,7 @@ class ToggleActiveOperator(bpy.types.Operator):
         if is_xr_running():
             stop_preview()
         else:
+            get_context().trackers_disabled = are_trackers_disabled()
             start_preview()
 
         return {"FINISHED"}

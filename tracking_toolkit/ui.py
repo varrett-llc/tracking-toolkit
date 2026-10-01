@@ -68,7 +68,13 @@ class RecorderPanel(TTKPanel, bpy.types.Panel):
             type="DEFAULT",
         )
 
-        layout.label(text="Headset must be awake to find trackers.")
+        # If less than 2 trackers, warn.
+        # Require more than 1, because sometimes the HMD will appear even if nothing is connected.
+        if len(xr_context.trackers) <= 1:
+            layout.label(text="Headset must be awake to find trackers.")
+
+        if xr_context.trackers_disabled:
+            layout.label(text="Vive trackers unsupported in Blender <5.3")
 
         # SteamVR specific warnings.
         # Use startswith because SteamVR sometimes appends additional text.
@@ -133,7 +139,6 @@ class SessionSettingsPanel(TTKPanel, bpy.types.Panel):
     bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context: bpy.types.Context):
-
         layout = self.layout
         session_settings = context.window_manager.xr_session_settings
 

@@ -179,6 +179,9 @@ class XRContext(bpy.types.PropertyGroup):
         name="Use Bone References", default=True, update=use_bones_change_callback
     )
 
+    trackers_disabled: (
+        bpy.props.BoolProperty()
+    )  # Blender version < 5.3 and SteamVR is active.
     trackers: bpy.props.CollectionProperty(type=XRTracker)
     selected_tracker: bpy.props.IntProperty(
         name="Selected tracker", default=0, update=selected_tracker_change_callback
