@@ -1,0 +1,9 @@
+repos:
+- repo: local
+  hooks:
+    - id: format-code
+      name: Format Code
+      entry: black .
+      language: system
+      pass_filenames: false
+      always_run: true

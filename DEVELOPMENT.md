@@ -1,29 +1,37 @@
 # Development
 
 The extension is split into a bunch of different files. Each time you make a change, you will have to reload scripts.
-To do so, click `(Blender Icon) > System > Reload Scripts`. I personally mapped this to `F8` for convenience.
+To do so, click `(Blender Icon) > System > Reload Scripts`. You may bind it to a key such as `F8` for convenience.
 
-# Code style.
+You should install the Python dev dependencies, which includes code formatting and bpy types.
+
+```shell
+pip install -r requirements.dev.txt
+```
+
+## Code Style
 
 Use clean and consistent code styling.
 Type hints should be used where appropriate.
 
 You must format your code using [Black](https://github.com/psf/black). You can do this by running:
 
-`pip install -r requirements.dev.txt`
+```shell
+black .
+```
 
-`black .`
+It is recommended to install the Git pre-commit hook for this:
 
-## Release
+```shell
+pre-commit install
+```
 
-Before packaging or running from source, execute these commands to fetch dependencies:
-
-`pip wheel --no-deps -r requirements.txt -w ./wheels`
-
-This is to comply with the [Python Wheels rules](https://docs.blender.org/manual/en/latest/advanced/extensions/python_wheels.html) for the [Blender Extensions](https://extensions.blender.org/) platform.
-
-# Github Actions
+## Github Actions
 
 You can use [act](https://github.com/nektos/act) to test the GitHub action workflow.
 
-`act -P windows-latest=-self-hosted -j build`
+```shell
+act -P windows-latest=-self-hosted -j build
+```
+
+This is usually unnecessary unless you are developing a custom CI workflow.
