@@ -19,14 +19,12 @@ wheels = []
 
 [build]
 paths_exclude_pattern = [
-  "images/",  # Stuff for readme
+  "images/",  # Stuff for readme.
   "__pycache__/",
   ".*",
   "*.zip",
-  "DEVELOPMENT.md",
-  "README.md",
-  "requirements.txt",
-  "requirements.dev.txt"
+  "*.md",
+  "*.txt"
 ]
 
 [permissions]

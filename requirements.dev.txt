@@ -1,1 +1,3 @@
+fake-bpy-module
 black
+pre-commit

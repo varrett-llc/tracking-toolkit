@@ -124,7 +124,8 @@ The action's name will be a [SMPTE timecode](https://en.wikipedia.org/wiki/SMPTE
 ## Troubleshooting
 
 Here are the solutions for common problems. 
-Feel free to [open an issue](https://github.com/ethanporcaro/tracking-toolkit/issues/new) if you have additional questions or problems.
+Feel free to [open an issue](https://github.com/varrett-llc/tracking-toolkit/issues/new?template=bug-report.md) if you have additional questions or problems.
+Please use the provided issue template.
 
 * Disconnecting and reconnecting OpenXR with the button at the top of the Tracking Toolkit will often solve minor issues.
 * Restarting Blender and/or your runtime also fixes many common problems.
@@ -166,7 +167,7 @@ Technical Art & Project Management [John Kraus](https://jrk.art).
 
 Tracking Toolkit will always remain free, and contributions are welcome. You can donate on [Ko-fi](https://ko-fi.com/varrett) and [Patreon](https://www.patreon.com/c/Varrett).
 
-If you want to assist with development, see DEVELOPMENT.md.
+If you want to assist with development, see [DEVELOPMENT.md](DEVELOPMENT.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
 
 # License
 
@@ -189,4 +190,4 @@ You should have received a copy of the GNU General Public License along with thi
 # Projects using Tracking Toolkit
 
 * ["Liam Right"](https://www.youtube.com/watch?v=5hOd7XADGaM&list=PLrBKkYQIF33SXziwFjMSMQx_r_6CZ_spu) by Ethan Porcaro
-* Yours? (Let me know!)
+* Yours? (Let us know!)

@@ -15,13 +15,9 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
 
-      - name: download wheels
-        run: |
-          pip wheel --no-deps -r requirements.txt -w ./wheels
-
       - name: package
         run: |
-          7z -bb1 a tracking_toolkit-latest.zip .\assets .\tracking_toolkit .\wheels .\__init__.py .\blender_manifest.toml .\LICENSE
+          7z -bb1 a tracking_toolkit-latest.zip .\assets .\tracking_toolkit .\__init__.py .\blender_manifest.toml .\LICENSE
           
       - name: Create release
         uses: softprops/action-gh-release@v2
