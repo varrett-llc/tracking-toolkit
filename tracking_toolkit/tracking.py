@@ -35,20 +35,27 @@ def _update_tracker_list(poses: dict[str, PoseData]):
                 continue
 
             loc = poses[role_string].pose.to_translation().copy()
-            if loc.length == 0:
+            init_loc = initial_poses.get(role_string)
+            if not init_loc or init_loc.length == 0:
+                initial_poses[role_string] = loc.copy()
+                continue
+            init_loc = init_loc.copy()
+
+            abs_distance = (loc - init_loc).length
+            if abs_distance < 0.05:
                 continue
 
             # XR Tracker location is relative to head.
-            if role_string != "head" and poses.get("head"):
-                head_loc = poses["head"].pose.to_translation().copy()
-                loc -= head_loc
+            # If the camera moves, sometimes controller movement is detected for offline trackers.
+            if role_string != "head":
+                if not poses.get("head") or not initial_poses.get("head"):
+                    continue
 
-            if role_string not in initial_poses:
-                initial_poses[role_string] = loc
-                continue
+                loc -= poses["head"].pose.to_translation().copy()
+                init_loc -= initial_poses["head"]
 
-            distance = (loc - initial_poses[role_string]).length
-            if distance < 0.001:
+            rel_distance = (loc - init_loc).length
+            if rel_distance < 0.05:
                 continue
 
             # Apply default nicknames to this new tracker.
