@@ -200,6 +200,15 @@ def _apply_poses():
 
     for role_string in pose_data.keys():
         data = pose_data[role_string]
+        extra_data = {
+            "trigger": data.trigger,
+            "thumbstick_x": data.thumbstick_x,
+            "thumbstick_y": data.thumbstick_y,
+            "button_a": data.button_a,
+            "button_b": data.button_b,
+            "button_x": data.button_x,
+            "button_y": data.button_y,
+        }
 
         _handle_actions(role_string, data)
 
@@ -223,6 +232,11 @@ def _apply_poses():
 
                 bone.matrix = data.pose
 
+                # Custom properties.
+                if role_string in ["left_hand", "r_hand"]:
+                    for k, v in extra_data.items():
+                        bone[k] = v
+
         # Apply empty transforms.
         else:
             for obj in bpy.data.objects:
@@ -233,6 +247,11 @@ def _apply_poses():
                     continue
 
                 obj.matrix_world = data.pose
+
+                # Custom properties.
+                if role_string in ["left_hand", "r_hand"]:
+                    for k, v in extra_data.items():
+                        obj[k] = v
 
 
 def _pose_vis_timer():
@@ -442,6 +461,8 @@ def _insert_action(relative_time: bool = False):
                 data["extras"].append(
                     {
                         "trigger": prev_pose_data.trigger,
+                        "thumbstick_x": prev_pose_data.thumbstick_x,
+                        "thumbstick_y": prev_pose_data.thumbstick_y,
                         "button_a": prev_pose_data.button_a,
                         "button_b": prev_pose_data.button_b,
                         "button_x": prev_pose_data.button_x,

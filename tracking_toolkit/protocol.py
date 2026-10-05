@@ -5,22 +5,24 @@ from pathlib import Path
 from typing import Literal
 
 import bpy
-import mathutils
+from mathutils import Vector, Matrix, Quaternion
 from bpy.types import (
     XrActionMapBinding,
     XrActionMapItem,
     XrActionMap,
 )
 
-from .utils import popup_message, log
+from .utils import log
 
 ACTION_SET_NAME = "tracking_toolkit"
 
 
 @dataclass
 class PoseData:
-    pose: mathutils.Matrix
+    pose: Matrix
     trigger: float
+    thumbstick_x: float = 0.0
+    thumbstick_y: float = 0.0
     button_a: bool = False
     button_b: bool = False
     button_x: bool = False
@@ -32,9 +34,16 @@ class ActionData:
     name: str
     action_path: str
     subaction_path: str
-    type: Literal["pose", "trigger", "button_a", "button_b", "button_x", "button_y"] = (
-        "pose"
-    )
+    type: Literal[
+        "pose",
+        "trigger",
+        "button_a",
+        "button_b",
+        "button_x",
+        "button_y",
+        "thumbstick_x",
+        "thumbstick_y",
+    ] = "pose"
     vendors: tuple[str, ...] | None = None
 
 
@@ -80,6 +89,20 @@ default_action_data = [
         type="button_y",
         vendors=("oculus",),
     ),
+    ActionData(
+        name="left_thumb_x",
+        action_path="/user/hand/left",
+        subaction_path="/input/thumbstick/x",
+        type="thumbstick_x",
+        vendors=("oculus", "index"),
+    ),
+    ActionData(
+        name="left_thumb_y",
+        action_path="/user/hand/left",
+        subaction_path="/input/thumbstick/y",
+        type="thumbstick_y",
+        vendors=("oculus", "index"),
+    ),
     # Right Hand.
     ActionData(
         name="right_hand",
@@ -104,6 +127,20 @@ default_action_data = [
         action_path="/user/hand/right",
         subaction_path="/input/b/click",
         type="button_b",
+        vendors=("oculus", "index"),
+    ),
+    ActionData(
+        name="right_thumb_x",
+        action_path="/user/hand/right",
+        subaction_path="/input/thumbstick/x",
+        type="thumbstick_x",
+        vendors=("oculus", "index"),
+    ),
+    ActionData(
+        name="right_thumb_y",
+        action_path="/user/hand/right",
+        subaction_path="/input/thumbstick/y",
+        type="thumbstick_y",
         vendors=("oculus", "index"),
     ),
 ]
@@ -300,6 +337,8 @@ def _init_xr(*_):
     pose_item.pose_is_controller_grip = True
 
     trigger_item = action_map.actionmap_items.new("trigger", True)
+    thumbstick_x_item = action_map.actionmap_items.new("thumbstick_x", True)
+    thumbstick_y_item = action_map.actionmap_items.new("thumbstick_y", True)
     button_a_item = action_map.actionmap_items.new("button_a", True)
     button_b_item = action_map.actionmap_items.new("button_b", True)
     button_x_item = action_map.actionmap_items.new("button_x", True)
@@ -325,6 +364,8 @@ def _init_xr(*_):
         return
 
     session_state.action_create(context, action_map, trigger_item)
+    session_state.action_create(context, action_map, thumbstick_x_item)
+    session_state.action_create(context, action_map, thumbstick_y_item)
     session_state.action_create(context, action_map, button_a_item)
     session_state.action_create(context, action_map, button_b_item)
     session_state.action_create(context, action_map, button_x_item)
@@ -347,6 +388,12 @@ def _init_xr(*_):
 
         _add_bindings_for_profile(
             vendor, profile, action_map, trigger_item, default_action_data
+        )
+        _add_bindings_for_profile(
+            vendor, profile, action_map, thumbstick_x_item, default_action_data
+        )
+        _add_bindings_for_profile(
+            vendor, profile, action_map, thumbstick_y_item, default_action_data
         )
         _add_bindings_for_profile(
             vendor, profile, action_map, button_a_item, default_action_data
@@ -412,11 +459,11 @@ def tick_xr() -> dict[str, PoseData] | None:
     poses = {}
 
     def _create_mat(location_, rotation_):
-        r_mat = mathutils.Matrix.Identity(3)
-        r_mat.rotate(mathutils.Quaternion(mathutils.Vector(rotation_)))
+        r_mat = Matrix.Identity(3)
+        r_mat.rotate(Quaternion(Vector(rotation_)))
         r_mat.resize_4x4()
-        l_mat = mathutils.Matrix.Translation(location_)
-        s_mat = mathutils.Matrix.Scale(1, 4)
+        l_mat = Matrix.Translation(location_)
+        s_mat = Matrix.Scale(1, 4)
         return l_mat @ r_mat @ s_mat
 
     pose_action_data = [
@@ -433,18 +480,22 @@ def tick_xr() -> dict[str, PoseData] | None:
             context, ACTION_SET_NAME, "trigger", data.action_path
         )[0]
 
+        thumbstick_x = session_state.action_state_get(
+            context, ACTION_SET_NAME, "thumbstick_x", data.action_path
+        )[0]
+        thumbstick_y = session_state.action_state_get(
+            context, ACTION_SET_NAME, "thumbstick_y", data.action_path
+        )[0]
+
         button_a = session_state.action_state_get(
             context, ACTION_SET_NAME, "button_a", data.action_path
         )[0]
-
         button_b = session_state.action_state_get(
             context, ACTION_SET_NAME, "button_b", data.action_path
         )[0]
-
         button_x = session_state.action_state_get(
             context, ACTION_SET_NAME, "button_x", data.action_path
         )[0]
-
         button_y = session_state.action_state_get(
             context, ACTION_SET_NAME, "button_y", data.action_path
         )[0]
@@ -452,6 +503,8 @@ def tick_xr() -> dict[str, PoseData] | None:
         pose_data = PoseData(
             pose=pose,
             trigger=trigger,
+            thumbstick_x=thumbstick_x,
+            thumbstick_y=thumbstick_y,
             button_a=button_a,
             button_b=button_b,
             button_x=button_x,
