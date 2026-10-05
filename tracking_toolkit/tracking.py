@@ -6,7 +6,7 @@ import mathutils
 from bpy_extras import anim_utils
 
 from .preferences import get_preferences, PreferenceInputMapping
-from .protocol import start_xr, tick_xr, stop_xr, is_xr_running, PoseData
+from .protocol import is_xr_running, PoseData
 from .utils import get_context, get_state, log, popup_message
 
 # Shared variables
@@ -15,7 +15,7 @@ armed_triggers = []
 initial_poses = {}
 
 
-def _update_tracker_list(poses: dict[str, PoseData]):
+def update_tracker_list(poses: dict[str, PoseData]):
     global initial_poses
     xr_context = get_context()
     is_running = is_xr_running()
@@ -74,27 +74,16 @@ def _update_tracker_list(poses: dict[str, PoseData]):
             tracker.index = i
 
 
-def _xr_tick_timer():
+def append_buffer(poses: dict[str, PoseData]):
     global data_buffer
-
-    poses = tick_xr()
-    if poses:
-        _update_tracker_list(poses)
-        data_buffer.append([datetime.datetime.now(), poses])
-
-    return 1.0 / 90  # 90fps just for preview.
+    data_buffer.append([datetime.datetime.now(), poses])
 
 
-def _clear_buffer():
+def clear_buffer():
     global data_buffer
     global initial_poses
     data_buffer.clear()
     initial_poses.clear()
-
-
-def _get_buffer() -> list[tuple[datetime.datetime, dict[str, PoseData]]]:
-    global data_buffer
-    return data_buffer.copy()
 
 
 def _get_latest_data() -> dict[str, PoseData] | None:
@@ -178,7 +167,9 @@ def _handle_actions(role_string: str, pose_data: PoseData):
     # Capture the current pose to the current keyframe.
     if _check_input("single_capture"):
         if not xr_state.recording:
-            _insert_keyframe(_get_latest_data())
+            global data_buffer
+            if len(data_buffer) > 0:
+                _insert_keyframe(data_buffer[-1][1])
 
     if _check_input("frame_forward"):
         if not xr_state.recording:
@@ -198,11 +189,7 @@ def _handle_actions(role_string: str, pose_data: PoseData):
                 bpy.ops.screen.animation_play()
 
 
-def _apply_poses():
-    pose_data = _get_latest_data()
-    if not pose_data:
-        return
-
+def apply_poses(pose_data: dict[str, PoseData]):
     xr_context = get_context()
 
     for role_string in pose_data.keys():
@@ -259,11 +246,6 @@ def _apply_poses():
                 if role_string in ["left_hand", "r_hand"]:
                     for k, v in extra_data.items():
                         obj[k] = v
-
-
-def _pose_vis_timer():
-    _apply_poses()
-    return 1.0 / 90  # 90fps.
 
 
 def _create_action(obj: bpy.types.Object, action_name: str):
@@ -347,7 +329,8 @@ def _insert_action(relative_time: bool = False):
     xr_context = get_context()
     preferences = get_preferences()
 
-    pose_data = _get_buffer()
+    global data_buffer
+    pose_data = data_buffer.copy()
 
     num_samples = len(pose_data)
     if num_samples == 0:
@@ -627,7 +610,7 @@ def _xr_countdown_timer():
     # Use < 1 in case it somehow goes negative.
     if xr_state.countdown < 1:
         log("Recording started.")
-        _clear_buffer()
+        clear_buffer()
         return None
 
     log(f"Recording starting in {xr_state.countdown}s...")
@@ -665,38 +648,6 @@ def stop_recording():
         return  # Recording was probably canceled.
 
     _insert_action()
-    _clear_buffer()
+    clear_buffer()
 
     log("Recording stopped.")
-
-
-def start_preview():
-    _clear_buffer()
-    start_xr()
-
-    if not bpy.app.timers.is_registered(_xr_tick_timer):
-        bpy.app.timers.register(_xr_tick_timer)
-
-    if not bpy.app.timers.is_registered(_pose_vis_timer):
-        bpy.app.timers.register(_pose_vis_timer)
-
-    log("Realtime preview started.")
-
-
-def stop_preview():
-    if bpy.app.timers.is_registered(_xr_tick_timer):
-        bpy.app.timers.unregister(_xr_tick_timer)
-
-    if bpy.app.timers.is_registered(_pose_vis_timer):
-        bpy.app.timers.unregister(_pose_vis_timer)
-
-    if bpy.app.timers.is_registered(_xr_tick_timer):
-        bpy.app.timers.unregister(_xr_tick_timer)
-
-    stop_xr()
-    _clear_buffer()
-
-    xr_state = get_state()
-    xr_state.recording = False
-
-    print("Realtime preview stopped.")

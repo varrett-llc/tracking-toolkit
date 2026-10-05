@@ -19,9 +19,9 @@ if _needs_reload:
     protocol = importlib.reload(protocol)
     properties = importlib.reload(properties)
     preferences = importlib.reload(preferences)
-    operators = importlib.reload(operators)
     ui = importlib.reload(ui)
     tracking = importlib.reload(tracking)
+    operators = importlib.reload(operators)
 
     print("Tracking Toolkit Reloaded")
 
@@ -64,6 +64,7 @@ def register():
     preferences.initialize_preferences()
 
     # Operators
+    bpy.utils.register_class(operators.XRPreviewModalOperator)
     bpy.utils.register_class(operators.ToggleActiveOperator)
     bpy.utils.register_class(operators.CreateRefsOperator)
     bpy.utils.register_class(operators.ToggleRecordOperator)
@@ -100,6 +101,7 @@ def unregister():
     bpy.utils.unregister_class(operators.ToggleRecordOperator)
     bpy.utils.unregister_class(operators.CreateRefsOperator)
     bpy.utils.unregister_class(operators.ToggleActiveOperator)
+    bpy.utils.unregister_class(operators.XRPreviewModalOperator)
 
     # Prefs
     bpy.utils.unregister_class(preferences.Preferences)

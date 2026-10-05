@@ -539,7 +539,17 @@ def stop_xr():
     if session_state and not session_state.is_running(context):
         return
 
-    bpy.ops.wm.xr_session_toggle()
+    # Get temp context and stop XR.
+    screen = bpy.context.window.screen
+    area3d = next((area for area in screen.areas if area.type == "VIEW_3D"), None)
+    if area3d:
+        region3d = next(
+            (region for region in area3d.regions if region.type == "WINDOW"), None
+        )
+        with bpy.context.temp_override(
+            window=bpy.context.window, area=area3d, region=region3d
+        ):
+            bpy.ops.wm.xr_session_toggle()
 
     log("XR Tracking Stopped.")
 

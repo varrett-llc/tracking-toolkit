@@ -172,6 +172,7 @@ class XRState(bpy.types.PropertyGroup):
     recording: bpy.props.BoolProperty(name="OpenXR recording", default=False)
     countdown: bpy.props.IntProperty(name="Countdown value")
     runtime: bpy.props.StringProperty(name="OpenXR runtime name", default="Unknown")
+    modal_running: bpy.props.BoolProperty(name="Preview modal running", default=False)
 
 
 class XRContext(bpy.types.PropertyGroup):
