@@ -1,17 +1,26 @@
 import bpy
 
+from .protocol import (
+    tick_xr,
+    start_xr,
+    stop_xr,
+    is_xr_running,
+)
+from .tracking import (
+    start_recording,
+    stop_recording,
+    append_buffer,
+    update_tracker_list,
+    apply_poses,
+    clear_buffer,
+)
 from .utils import (
     check_refs,
     create_bone_references,
     create_empty_references,
-    get_context,
+    log,
     get_state,
-)
-from .xr_core.tracking import (
-    start_recording,
-    stop_recording,
-    start_preview,
-    stop_preview,
+    get_context,
 )
 
 
@@ -23,14 +32,21 @@ class ToggleRecordOperator(bpy.types.Operator):
         xr_state = get_state()
 
         # Double check state, though this should have been checked before
-        if not xr_state.enabled:
+        if not is_xr_running():
             return {"FINISHED"}
 
         if xr_state.recording:
             stop_recording()
         else:
+            if len(get_context().trackers) == 0:
+                self.report({"ERROR"}, "No trackers exist to record.")
+                return {"CANCELLED"}
+
             if not check_refs():
-                self.report({"WARNING"}, "Not all references exist. Expect data loss.")
+                if get_context().use_bones:
+                    create_bone_references()
+                else:
+                    create_empty_references()
 
             start_recording()
 
@@ -42,10 +58,18 @@ class ToggleActiveOperator(bpy.types.Operator):
     bl_label = "Toggle OpenXR's tracking state"
 
     def execute(self, context):
-        if get_state().enabled:
-            stop_preview()
+        xr_state = get_state()
+
+        if is_xr_running():
+            log("Stopping XR.")
+            xr_state.modal_running = False
+        elif xr_state.modal_running:
+            log("Stopping XR.")
+            xr_state.modal_running = False
         else:
-            start_preview()
+            log("Starting XR.")
+            xr_state.modal_running = True
+            bpy.ops.id.xr_preview_modal("INVOKE_DEFAULT")
 
         return {"FINISHED"}
 
@@ -57,21 +81,66 @@ class CreateRefsOperator(bpy.types.Operator):
 
     @staticmethod
     def execute(self, context):
-        xr_state = get_state()
-
-        # Temporarily disable XR.
-        should_reenable = xr_state.enabled
-        if xr_state.enabled:
-            stop_preview()
-
         # Create references.
         if get_context().use_bones:
             create_bone_references()
         else:
             create_empty_references()
 
-        if should_reenable:
-            start_preview()
-
-        print("Done")
         return {"FINISHED"}
+
+
+class XRPreviewModalOperator(bpy.types.Operator):
+    bl_idname = "id.xr_preview_modal"
+    bl_label = "XR Realtime Preview"
+
+    _timer = None
+
+    def _start_preview(self, context):
+        clear_buffer()
+        start_xr()
+
+        # Create an event timer to keep the modal running.
+        self._timer = context.window_manager.event_timer_add(
+            1.0 / 90.0, window=context.window
+        )
+
+        log("Realtime preview started.")
+
+    def _stop_preview(self, context):
+        stop_xr()
+        clear_buffer()
+        get_state().recording = False
+
+        log("Realtime preview stopped.")
+
+        if self._timer:
+            context.window_manager.event_timer_remove(self._timer)
+            self._timer = None
+
+    def invoke(self, context, event):
+        self._start_preview(context)
+        context.window_manager.modal_handler_add(self)
+        return {"RUNNING_MODAL"}
+
+    def modal(self, context, event):
+        xr_state = get_state()
+
+        # XR was stopped somewhere else.
+        if not is_xr_running():
+            xr_state.modal_running = False
+
+        if not xr_state.modal_running:
+            self._stop_preview(context)
+            return {"CANCELLED"}
+
+        if event.type == "TIMER":
+            poses = tick_xr()
+            if poses:
+                update_tracker_list(poses)
+                apply_poses(poses)
+                append_buffer(poses)
+
+            return {"RUNNING_MODAL"}
+
+        return {"PASS_THROUGH"}

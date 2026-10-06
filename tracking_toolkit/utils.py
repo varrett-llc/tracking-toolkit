@@ -22,6 +22,37 @@ def get_state() -> "XRState":
     return bpy.context.window_manager.XRState
 
 
+def popup_message(message: str, title: str = "Error", icon: str = "ERROR"):
+    """
+    Draw a popup message on the screen at the user's cursor.
+    """
+
+    def _draw(self, context):
+        self.layout.label(text=message)
+
+    wm = bpy.context.window_manager
+    if wm:
+        bpy.context.window_manager.popup_menu(_draw, title=title, icon=icon)
+
+
+def log(message: str):
+    """
+    Debug log and format.
+    """
+    print(f"[TTK] {message}")
+
+
+def reformat_role_string(role_string: str):
+    """
+    Reformat left/right nicknames to work better with bone symmetry.
+    """
+    new_nn = role_string
+    if re.match(f"(l(eft)?)|(r(ight)?)_", new_nn):
+        new_nn = re.sub(r"([lr])((eft)|(ight))?_(.+)", r"\5.\1", new_nn)
+
+    return new_nn
+
+
 def check_refs() -> bool:
     """
     Check if references exist for all trackers.
@@ -207,7 +238,7 @@ def ensure_empty(name):
 
 
 def create_bone_references():
-    print("Creating bone references.")
+    log("Creating bone references.")
 
     xr_context = get_context()
 
@@ -262,7 +293,7 @@ def create_bone_references():
 
 
 def create_empty_references():
-    print("Creating empty references.")
+    log("Creating empty references.")
 
     xr_context = get_context()
 
@@ -299,13 +330,13 @@ def convert_bones_to_empties():
     """
     Converts bones to empties. Animation data is copied.
     """
-    print("Converting bones to empties.")
+    log("Converting bones to empties.")
 
     xr_context = get_context()
 
     arm = bpy.data.objects.get("XR Trackers")
     if not arm:
-        print("Armature not found. Conversion cannot proceed.")
+        popup_message("Armature not found. Conversion cannot proceed.")
         return
 
     # Create empties to convert data to.
@@ -313,7 +344,7 @@ def convert_bones_to_empties():
 
     animation_data = arm.animation_data
     if not animation_data:
-        print(f"Armature does have animation data. Conversion cannot proceed.")
+        popup_message(f"Armature does have animation data. Conversion cannot proceed.")
         return
 
     # Convert all strips on all tracks.
@@ -330,7 +361,7 @@ def convert_bones_to_empties():
     for track in animation_data.nla_tracks:
         for strip in track.strips:
             if not strip.action:
-                print(f"Strip {strip.name} does have action. Skipping.")
+                log(f"Strip {strip.name} does have action. Skipping.")
                 continue
 
             actions_to_process.append(strip.action)
@@ -341,12 +372,12 @@ def convert_bones_to_empties():
 
             bone = arm.pose.bones.get(nickname)
             if not bone:
-                print(f"Bone {nickname} does not exist. Skipping.")
+                log(f"Bone {nickname} does not exist. Skipping.")
                 continue
 
             empty = bpy.data.objects.get(nickname)
             if not empty:
-                print(f"Empty {nickname} does not exist.. Skipping.")
+                log(f"Empty {nickname} does not exist.. Skipping.")
                 continue
 
             empty.animation_data_create()
@@ -359,7 +390,7 @@ def convert_bones_to_empties():
             # since a user might have deleted a track leaving dirty references.
             empty_action = bpy.data.actions.get(empty_action_name)
             if empty_action:
-                print(f"Overwriting existing action: {empty_action_name}")
+                log(f"Overwriting existing action: {empty_action_name}")
                 bpy.data.actions.remove(empty_action)
 
             empty_action = arm_action.copy()
@@ -369,12 +400,28 @@ def convert_bones_to_empties():
                 empty_action, empty_action.slots[0]
             ).fcurves
             for fcurve in fcurves:
-                # Only get the fcurve for the current tracker's bone.
-                if not fcurve.data_path.startswith(f'pose.bones["{nickname}"].'):
+                if not fcurve.data_path:
+                    continue
+
+                # Remove copied fcurves that belong to other bones.
+                if not fcurve.data_path.startswith(f'pose.bones["{nickname}"]'):
                     fcurves.remove(fcurve)
                     continue
 
-                new_path = re.sub(r".+\.([^.]+)$", r"\1", fcurve.data_path)
+                subpath = fcurve.data_path.replace(f'pose.bones["{nickname}"]', "")
+
+                # Standard loc, rot, scale etc. property.
+                if subpath.startswith("."):
+                    new_path = subpath[1:]
+
+                # Custom property by name.
+                else:
+                    new_path = subpath
+
+                    # Make sure property exists on object.
+                    prop_name = re.sub(r"\[\"(.+)\"]", r"\1", subpath)
+                    empty[prop_name] = 0.0
+
                 fcurve.data_path = new_path
 
             # If the armature had an active (non-strip) action, set it as active.
@@ -408,9 +455,14 @@ def convert_empties_to_bones():
     """
     Converts empties to bones. Animation data is copied.
     """
-    print("Converting empties to bones.")
+    log("Converting empties to bones.")
 
     xr_context = get_context()
+
+    root = bpy.data.objects.get("XR Root")
+    if not root:
+        popup_message("Empties not found. Conversion cannot proceed.")
+        return
 
     # Create empties to convert data to.
     create_bone_references()
@@ -427,17 +479,17 @@ def convert_empties_to_bones():
 
         empty = bpy.data.objects.get(nickname)
         if not empty:
-            print(f"Empty {nickname} does not exist. Skipping.")
+            log(f"Empty {nickname} does not exist. Skipping.")
             continue
 
         animation_data = empty.animation_data
         if not animation_data:
-            print(f"Empty {nickname} does have animation data. Skipping.")
+            log(f"Empty {nickname} does have animation data. Skipping.")
             continue
 
         bone = arm.pose.bones.get(nickname)
         if not bone:
-            print(f"Bone {nickname} does not exist. Skipping.")
+            log(f"Bone {nickname} does not exist. Skipping.")
             continue
 
         # Convert all strips on all tracks.
@@ -454,7 +506,7 @@ def convert_empties_to_bones():
         for track in animation_data.nla_tracks:
             for strip in track.strips:
                 if not strip.action:
-                    print(f"Strip {strip.name} does have action. Skipping.")
+                    log(f"Strip {strip.name} does have action. Skipping.")
                     continue
 
                 actions_to_process.append(strip.action)
@@ -503,7 +555,21 @@ def convert_empties_to_bones():
             ).fcurves
 
             for empty_fcurve in empty_fcurves:
-                new_path = f'pose.bones["{nickname}"].{empty_fcurve.data_path}'
+                orig_path = empty_fcurve.data_path
+                if not orig_path:
+                    continue
+
+                # Custom property path.
+                if orig_path.startswith('["'):
+                    new_path = f'pose.bones["{nickname}"]{orig_path}'
+
+                    # Make sure property exists on object.
+                    prop_name = orig_path[2:-2]  # Strip brackets and quotes.
+                    bone[prop_name] = 0.0
+
+                # Standard loc, rot, scale etc. property.
+                else:
+                    new_path = f'pose.bones["{nickname}"].{orig_path}'
 
                 # Remove existing fcurve if present.
                 arm_fcurve = arm_fcurves.find(new_path, index=empty_fcurve.array_index)
