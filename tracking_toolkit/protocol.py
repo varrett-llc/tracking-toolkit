@@ -530,14 +530,11 @@ def tick_xr() -> dict[str, PoseData] | None:
 
 
 def stop_xr():
-    context = bpy.context
-    session_state = bpy.context.window_manager.xr_session_state
+    if not is_xr_running():
+        return
 
     if _init_xr in bpy.app.handlers.xr_session_start_pre:
         bpy.app.handlers.xr_session_start_pre.remove(_init_xr)
-
-    if session_state and not session_state.is_running(context):
-        return
 
     # Get temp context and stop XR.
     screen = bpy.context.window.screen

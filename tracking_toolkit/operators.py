@@ -125,16 +125,16 @@ class XRPreviewModalOperator(bpy.types.Operator):
 
     def modal(self, context, event):
         xr_state = get_state()
+
+        # XR was stopped somewhere else.
+        if not is_xr_running():
+            xr_state.modal_running = False
+
         if not xr_state.modal_running:
             self._stop_preview(context)
             return {"CANCELLED"}
 
         if event.type == "TIMER":
-            # XR was stopped somewhere else.
-            if not is_xr_running():
-                self._stop_preview(context)
-                return {"CANCELLED"}
-
             poses = tick_xr()
             if poses:
                 update_tracker_list(poses)
