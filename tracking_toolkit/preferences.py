@@ -1,5 +1,3 @@
-import math
-
 import bpy
 
 from .protocol import default_tracker_names
@@ -293,10 +291,25 @@ class Preferences(bpy.types.AddonPreferences):
             text="These apply going forward, and will not replace the current nicknames in your scene."
         )
 
-        for n in self.naming:
-            nn_box.prop(n, "nickname", text=n.role_string)
+        def_col = nn_box.column()
 
-        nn_box.operator(ResetNicknamesOperator.bl_idname, text="Reset Nicknames")
+        fbt_header, fbt_panel = nn_box.panel("extra_trackers", default_closed=True)
+        fbt_header.label(text="Other Trackers")
+
+        for n in self.naming:
+            box = (
+                def_col
+                if n.role_string in ["head", "left_hand", "right_hand"]
+                else fbt_panel
+            )
+            if box:
+                row = box.row()
+                row.prop(n, "nickname", text=n.role_string)
+                row.label(text="")  # Make prop above display at half-width.
+
+        row = nn_box.row()
+        row.operator(ResetNicknamesOperator.bl_idname, text="Reset Nicknames")
+        row.label(text="")
 
     def draw(self, _):
         self._draw_recording_options()
