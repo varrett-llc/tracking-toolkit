@@ -35,6 +35,6 @@ jobs:
 
       - name: create release
         uses: softprops/action-gh-release@v2
-        if: github.ref == 'refs/heads/main' && github.ref_type == 'tag'
+        if: github.ref_type == 'tag'
         with:
           files: tracking_toolkit-latest.zip
