@@ -227,7 +227,7 @@ def apply_poses(pose_data: dict[str, PoseData]):
                 bone.matrix = data.pose
 
                 # Custom properties.
-                if role_string in ["left_hand", "r_hand"]:
+                if role_string in ["left_hand", "right_hand"]:
                     for k, v in extra_data.items():
                         bone[k] = v
 
@@ -243,7 +243,7 @@ def apply_poses(pose_data: dict[str, PoseData]):
                 obj.matrix_world = data.pose
 
                 # Custom properties.
-                if role_string in ["left_hand", "r_hand"]:
+                if role_string in ["left_hand", "right_hand"]:
                     for k, v in extra_data.items():
                         obj[k] = v
 
