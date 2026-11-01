@@ -9,7 +9,7 @@ and can also track the movement of actors for motion capture.
 You can view the [demonstration video](https://youtu.be/W6DTAmQiJ4Q) on YouTube. 
 There is also a [tutorial](https://youtu.be/watch?v=wcLYXi85080) available.
 
-If you'd like to see support for a new device, let me know! You can open an issue for any questions.
+⚠️ If you are viewing this README from the `main` branch, it may contain details applicable to an unreleased version.
 
 ## Requirements
 
@@ -23,6 +23,8 @@ Additionally, you will need an OpenXR runtime and a device to go with it.
 | Meta Link | Meta Quest 3, Oculus Rift |
 | VDXR      | Meta Quest 3, Vive Focus  |
 | Monado    | Open Source/Community     |
+
+Because Tracking Toolkit uses Blender's native XR features, additional OpenXR device and feature support must be added to Blender's core source code.
 
 ## Installation
 
@@ -68,13 +70,15 @@ Even if controllers are disconnected, they will still remain on the list.
 
 You can click the eyeball icon to show and hide the trackers in the viewport.
 
-> ⚠️ If you are using Vive Trackers, you will need to use SteamVR as your OpenXR runtime. 
-> You will also need to assign a role to each tracker (waist, foot, etc.) in the SteamVR tracker settings.
+⚠️ If you are using Vive Trackers, you will need to use SteamVR as your OpenXR runtime. 
+You will also need to assign a role to each tracker (waist, foot, etc.) in the SteamVR tracker settings,
+or the trackers will not appear on the list.
 
 You can double click a tracker's name on the list to give it a nickname.
-You should not directly rename empties or bones in the outliner.
+A nickname must be unique, and cannot be set to the original name of another tracker.
+You should not directly rename empties or bones in the outliner, as it can break references and recording.
 
-You can also set nicknames in the addon preferences that apply to all future files.
+You may also set nicknames in the addon preferences that apply to all future files.
 
 </details>
 
@@ -110,14 +114,58 @@ Objects or cameras in your scene should be constrained to this offset, rather th
 
 By default, trackers will be recorded at your scene's FPS.
 You can override this in the addon preferences.
+You can also set intervals (eg. record on 2s), which will calculate tracking FPS based on scene FPS and interval.
 
-High FPS values may cause performance issues, or prevent the recording from reflecting true tracker positions.
+The FPS of takes cannot be increased after recording, but you can decrease them manually or using Blender's [action baking](https://docs.blender.org/manual/en/latest/editors/nla/editing/strip.html?utm_source=blender-5.2.3-lts#bpy-ops-nla-bake) feature.
+
+High FPS values may cause performance issues, and precision may stop increasing at a certain point.
 
 There is a dropdown below the record button that allows you to set a delay before data is captured.
 
-Each time you record a new take, old ones are pushed down onto new NLA strips and muted.
+Each time you record a new take, old ones are pushed down onto new [NLA strips](https://docs.blender.org/manual/en/latest/editors/nla/introduction.html) and muted.
 The action's name will be a [SMPTE timecode](https://en.wikipedia.org/wiki/SMPTE_timecode]) 
 (prefixed with the tracker's name if using empties).
+
+### Controller Input Recording
+
+Controller inputs, such as thumbsticks and buttons, will be recorded as custom properties.
+If using bone references, they will be stored as bone properties. 
+If using empties, they will be stored as object properties.
+
+These custom properties are keyframed and can be viewed in the [Graph Editor](https://docs.blender.org/manual/en/latest/editors/graph_editor/introduction.html).
+They can also be referenced inside drivers.
+
+Vive Tracker inputs through pogo pins are not currently recorded.
+
+</details>
+
+<details>
+
+<summary>Input Mapping</summary>
+
+### Input Mapping
+
+Controller buttons can be used to trigger TTK functions. These bindings can be configured in the addon preferences.
+
+The following actions can be bound:
+
+#### Start/Stop Capture
+Behaves identically to the `Start Recording`/`Stop Recording` button.
+
+#### Capture Single Frame
+"Stamps" the live tracker pose onto the scene's current frame. See [#45](https://github.com/varrett-llc/tracking-toolkit/issues/45).
+
+#### Frame Backward
+Decrements the scene's frame by 1.
+
+#### Frame Forward
+Increments the scene's frame by 1.
+
+#### Start/Stop Playback
+Toggles playback of the scene's animation.
+
+The `Restart playback from beginning` option will restart playback from frame 0. 
+Otherwise, the playback will continue from the current frame.
 
 </details>
 
@@ -127,10 +175,13 @@ Here are the solutions for common problems.
 Feel free to [open an issue](https://github.com/varrett-llc/tracking-toolkit/issues/new?template=bug-report.md) if you have additional questions or problems.
 Please use the provided issue template.
 
-* Disconnecting and reconnecting OpenXR with the button at the top of the Tracking Toolkit will often solve minor issues.
-* Restarting Blender and/or your runtime also fixes many common problems.
-* Manual changes to the reference objects, bones, and names can cause issues. 
-You may need to start with a fresh scene in those cases.
+* If controllers or trackers fail to appear on the list, ensure in-headset system menus are closed (eg. the SteamVR dashboard overlay).
+If you are using Vive Trackers without a HMD, you can close this menu by clicking the `☰` button on the SteamVR status panel, then click `Toggle Dashboard`. 
+If trackers still do not appear, ensure that you assigned them roles.
+* Stopping and restarting OpenXR with the button at the top of the Tracking Toolkit panel may often resolve issues.
+* A complete restart of Blender and/or your runtime may also fix many common problems.
+* Manual changes to the reference objects, bones, and names can break tracking. 
+Delete the `XR Trackers` armature (if using bones) or the `XR Root` object and all children (if using empties). Then recreate references.
 
 <details>
 
@@ -150,6 +201,7 @@ You may need to start with a fresh scene in those cases.
 
 **A:** Yes! Make sure to disable `Pause VR when headset is idle` in the SteamVR video settings. 
 If you have no headset attached at all, you may need to enable the Mock HMD driver.
+If your trackers do not appear in the list, make sure the in-headset dashboard/menu is closed.
 
 **Q:** Will my scene animations play during recording?
 
