@@ -1,8 +1,4 @@
-import json
-import os
-import sys
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Literal
 
 import bpy
@@ -187,62 +183,6 @@ for role in vive_role_strings:
 default_tracker_names = ["head", "left_hand", "right_hand", *vive_role_strings]
 
 
-def _get_runtime_path() -> str:
-    """Finds the absolute path to the active OpenXR runtime JSON manifest."""
-
-    # Env var.
-    if "XR_RUNTIME_JSON" in os.environ:
-        return os.environ["XR_RUNTIME_JSON"]
-
-    # Windows registry.
-    if sys.platform == "win32":
-        import winreg
-
-        try:
-            reg_path = r"SOFTWARE\Khronos\OpenXR\1"
-            with winreg.OpenKey(
-                winreg.HKEY_LOCAL_MACHINE, reg_path, 0, winreg.KEY_READ
-            ) as key:
-                value, _ = winreg.QueryValueEx(key, "ActiveRuntime")
-                return value
-        except WindowsError:
-            return ""
-
-    # Linux.
-    elif sys.platform.startswith("linux"):
-        user_path = Path.home() / ".config" / "openxr" / "1" / "active_runtime.json"
-        if user_path.is_file():
-            return str(user_path)
-
-        sys_path = Path("/etc/xdg/openxr/1/active_runtime.json")
-        if sys_path.is_file():
-            return str(sys_path)
-
-    return ""
-
-
-def _get_runtime_name() -> str:
-    """Finds the name of the the active OpenXR runtime."""
-
-    runtime_path = _get_runtime_path()
-
-    if not runtime_path or not os.path.exists(runtime_path):
-        log("OpenXR config file does not exist.")
-        return ""
-
-    log(f"OpenXR config path: {runtime_path}.")
-
-    with open(runtime_path, "r") as f:
-        config = json.load(f)
-        runtime_name = config.get("runtime", {}).get("name", "")
-        if not runtime_name:
-            log("OpenXR config file does not contain a name.")
-            return ""
-
-        log(f"OpenXR runtime name: {runtime_name}.")
-        return runtime_name
-
-
 def _create_bindings(
     name: str,
     item: XrActionMapItem,
@@ -317,7 +257,8 @@ def _init_xr(*_):
     context = bpy.context
     session_state = bpy.context.window_manager.xr_session_state
 
-    runtime_name = _get_runtime_name()
+    runtime_name = session_state.runtime_name
+    log(f"OpenXR runtime name: {runtime_name}")
 
     use_steamvr = "steamvr" in runtime_name.lower() or "steamxr" in runtime_name.lower()
     trackers_supported = bpy.app.version >= (5, 3, 0)
