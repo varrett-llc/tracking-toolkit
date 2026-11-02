@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 from dataclasses import dataclass
@@ -220,16 +221,26 @@ def _get_runtime_path() -> str:
     return ""
 
 
-def are_trackers_disabled() -> bool:
-    """
-    Check if SteamVR is active, but the Blender version is insufficient (<5.3).
-    """
+def _get_runtime_name() -> str:
+    """Finds the name of the the active OpenXR runtime."""
+
     runtime_path = _get_runtime_path()
 
-    use_steamvr = "steamvr" in runtime_path.lower() or "steamxr" in runtime_path.lower()
-    trackers_supported = bpy.app.version >= (5, 3, 0)
+    if not runtime_path or not os.path.exists(runtime_path):
+        log("OpenXR config file does not exist.")
+        return ""
 
-    return use_steamvr and not trackers_supported
+    log(f"OpenXR config path: {runtime_path}.")
+
+    with open(runtime_path, "r") as f:
+        config = json.load(f)
+        runtime_name = config.get("runtime", {}).get("name", "")
+        if not runtime_name:
+            log("OpenXR config file does not contain a name.")
+            return ""
+
+        log(f"OpenXR runtime name: {runtime_name}.")
+        return runtime_name
 
 
 def _create_bindings(
@@ -306,14 +317,14 @@ def _init_xr(*_):
     context = bpy.context
     session_state = bpy.context.window_manager.xr_session_state
 
-    runtime_path = _get_runtime_path()
-    log(f"OpenXR runtime path: {runtime_path}")
+    runtime_name = _get_runtime_name()
 
-    use_steamvr = "steamvr" in runtime_path.lower() or "steamxr" in runtime_path.lower()
+    use_steamvr = "steamvr" in runtime_name.lower() or "steamxr" in runtime_name.lower()
+    trackers_supported = bpy.app.version >= (5, 3, 0)
 
     use_trackers = False
     if use_steamvr:
-        if are_trackers_disabled():
+        if not trackers_supported:
             log("Blender version insufficient for Vive trackers. Disabling.")
         else:
             use_trackers = True
