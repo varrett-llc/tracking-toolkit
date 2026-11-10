@@ -33,7 +33,7 @@ Because Tracking Toolkit uses Blender's native XR features, additional OpenXR de
 
 ## Usage
 
-1) Navigate to the new "Track TK" tab on the sidebar.
+1) Navigate to the new "TTK" tab on the sidebar.
 
 
 2) Press the `Start/Connect OpenXR` button to establish a connection to your runtime. 

@@ -34,12 +34,12 @@ class PANEL_UL_TrackerList(bpy.types.UIList):
 class TTKPanel:
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "Track TK"
+    bl_category = "TTK"
 
 
 class RecorderPanel(TTKPanel, bpy.types.Panel):
     bl_idname = "VIEW3D_PT_openxr_recorder_menu"
-    bl_label = "Tracking Toolkit Recorder"
+    bl_label = "Tracking Toolkit"
 
     def draw(self, context: bpy.types.Context):
         layout = self.layout
