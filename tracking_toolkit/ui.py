@@ -150,6 +150,7 @@ class SessionSettingsPanel(TTKPanel, bpy.types.Panel):
 
         col.prop(session_settings, "show_selection", text="Selection")
         col.prop(session_settings, "show_controllers", text="Controllers")
+        col.prop(session_settings, "use_absolute_tracking", text="Absolute Tracking")
 
         col = layout.column(align=True)
         col.prop(session_settings, "view_scale", text="View Scale")
