@@ -74,7 +74,7 @@ class RecorderPanel(TTKPanel, bpy.types.Panel):
             layout.label(text="Headset must be awake to find trackers.")
 
         if xr_context.trackers_disabled:
-            layout.label(text="Vive trackers unsupported in Blender <5.3")
+            layout.label(text="Vive trackers require Blender 5.3.1 onward")
 
         # SteamVR specific warnings.
         # Use startswith because SteamVR sometimes appends additional text.

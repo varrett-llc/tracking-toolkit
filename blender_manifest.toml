@@ -1,14 +1,14 @@
 schema_version = "1.0.0"
 
 id = "tracking_toolkit"
-version = "3.0.0"
+version = "3.0.1"
 name = "Tracking Toolkit"
 tagline = "Use OpenXR trackers and devices directly in Blender"
 maintainer = "Ethan Porcaro <ethan@varrett.com>"
 tags = ["Animation", "Tracking"]
 
 type = "add-on"
-blender_version_min = "5.2.0"  # Vive trackers supported >=5.3, a warning shows if lower.
+blender_version_min = "5.2.0"  # Vive trackers supported >=5.3.1, a warning shows if lower.
 platforms = ["windows-x64", "linux-x64"]
 
 license = [
